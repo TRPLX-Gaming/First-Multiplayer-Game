@@ -1,0 +1,28 @@
+{
+  "name": "Simple Room Multiplayer",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src/main.js",
+  "scripts": {
+    "start":"nodemon src/main.js",
+    "build":"tsc && tsc-alias",
+    "fast":"npm run build && npm start",
+    "build:dev":"concurrently \"tsc --watch\" \"tsc-alias -w\""
+  },
+  "keywords": [],
+  "author": "TRPLX",
+  "license": "ISC",
+  "dependencies": {
+    "ws":"^8.18.3",
+    "express": "^5.1.0",
+    "cookie-parser": "^1.4.7"
+  },
+  "devDependencies": {
+    "wscat":"^6.1.0",
+    "nodemon":"^3.1.10",
+    "@types/ws":"^8.18.1",
+    "@types/cookie-parser": "^1.4.8",
+    "@types/express": "^5.0.1",
+    "@types/node": "^22.14.1"
+  }
+}
