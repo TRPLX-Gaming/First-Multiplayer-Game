@@ -17,7 +17,7 @@ const PROTOCOL = window.location.protocol === 'http:' ? 'ws' : 'wss'
 const ctx = canvas.getContext('2d')
 const FPS = 60
 const frameTime = 1000/FPS
-let ws = new WebSocket(`${PROTOCOL}://${window.location.host}`)
+let ws = new WebSocket(`${PROTOCOL}://${'localhost:3000'}`)
 let players = new Map() // player id => player game Object
 
 // event listeners 
@@ -28,6 +28,19 @@ connectBtn.addEventListener('click',() => {
 
 rightBtn.addEventListener('click',()=>{
   player.x += 20
+  ws.send(JSON.stringify({
+    type:'player-moved',
+    data:{
+      player:{
+        x:player.x,
+        y:player.y
+      }
+    }
+  }))
+})
+
+leftBtn.addEventListener('click',()=>{
+  player.x -= 20
   ws.send(JSON.stringify({
     type:'player-moved',
     data:{
@@ -53,16 +66,18 @@ function updatePlayers(playersData) {
   let existingPlayers = new Set(players.keys())
   
   playersData.forEach(player => {
-    let playerObj = players.get(player.id)
-    // console.log('obj',playerObj)
-    if(!playerObj) {
-      const newAdd = new Player(player.x,player.y,player.color)
-      players.set(player.id,newAdd)
+    if(player) {
+      let playerObj = players.get(player.id)
+      // console.log('obj',playerObj)
+      if(!playerObj) {
+        const newAdd = new Player(player.x,player.y,player.color)
+        players.set(player.id,newAdd)
+      }
+        playerObj.x = player.x 
+        playerObj.y = player.y 
+        
+        existingPlayers.delete(player.id)
     }
-    playerObj.x = player.x 
-    playerObj.y = player.y 
-    
-    existingPlayers.delete(player.id)
   })
   
   existingPlayers.forEach(pl => {
@@ -107,6 +122,11 @@ ws.onopen = () => {
 
 ws.onmessage = e => {
   try {
+    if(e.data === 'ping') {
+      ws.send('pong')
+      return
+    }
+    
     let data = JSON.parse(e.data)
     switch(data.type) {
       case 'connected':
@@ -143,3 +163,8 @@ ws.onmessage = e => {
   }
 }
 
+ws.onclose = () => {
+  players.clear()
+  playerCountDisplay.textContent = 'null'
+  playerDisplayId.textContent = 'null'
+}

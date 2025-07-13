@@ -6,10 +6,12 @@ import {generateID,validateType} from './utils'
 import {WSClient,WSPayload} from './types'
 import handleOperation from './Handler'
 import {activeRooms,getRoomData} from './room'
+import globalRoom from './GlobalRoom'
 
 // consts
 const PATH = path.join(__dirname,'../../game')
 const TARGET = path.join(PATH,'/index.html')
+const PING_DELAY = 2000
 const connectedClients = new Map<string,WSClient>()
 
 // init server 
@@ -55,6 +57,7 @@ let loopCheck:any = null
 wss.on('connection',async (ws:WebSocket) => {
   const client = ws as WSClient
   client.id = await generateID(8)
+  client.isAlive = true
   console.log(`client, id:${client.id} joined the global lobby`)
   
   connectedClients.set(client.id,client)
@@ -66,6 +69,11 @@ wss.on('connection',async (ws:WebSocket) => {
   
   // incoming data
   client.on('message',async (message:string) => {
+    // if alive 
+    if(message.toString() === 'pong') {
+      client.isAlive = true
+      return
+    }
     let data:WSPayload
     try {
       data = JSON.parse(message)
@@ -107,6 +115,7 @@ wss.on('connection',async (ws:WebSocket) => {
   client.on('close',()=>{
     console.log(`client ${client.id} disconnected`)
     connectedClients.delete(client.id)
+    globalRoom.removePlayer(client)
     // remove their room presence
     // for bigger projects try storing their info to retain session state
     if(client.roomID) {
@@ -128,6 +137,20 @@ wss.on('connection',async (ws:WebSocket) => {
     console.log('WebSocket err',err)
   })
 })
+
+// checking for alive players
+setInterval(()=>{
+  wss.clients.forEach(client => {
+    if(client.isAlive === false) {
+      console.log(`${client.id} left`)
+      connectedClients.delete(client.id)
+      return client.terminate()
+    }
+    client.isAlive = false
+    client.send('ping')
+    console.log(connectedClients.size)
+  })
+},PING_DELAY)
 
 // display frontend for undefined backend routes
 app.use((req:Request,res:Response,next:NextFunction) => {

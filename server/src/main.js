@@ -43,8 +43,10 @@ const ws_1 = require("ws");
 const utils_1 = require("./utils");
 const Handler_1 = __importDefault(require("./Handler"));
 const room_1 = require("./room");
+const GlobalRoom_1 = __importDefault(require("./GlobalRoom"));
 const PATH = path_1.default.join(__dirname, '../../game');
 const TARGET = path_1.default.join(PATH, '/index.html');
+const PING_DELAY = 2000;
 const connectedClients = new Map();
 const app = (0, express_1.default)();
 const server = http.createServer(app);
@@ -79,6 +81,7 @@ let loopCheck = null;
 wss.on('connection', async (ws) => {
     const client = ws;
     client.id = await (0, utils_1.generateID)(8);
+    client.isAlive = true;
     console.log(`client, id:${client.id} joined the global lobby`);
     connectedClients.set(client.id, client);
     client.send(JSON.stringify({
@@ -87,6 +90,10 @@ wss.on('connection', async (ws) => {
         message: `joined with id: ${client.id}`
     }));
     client.on('message', async (message) => {
+        if (message.toString() === 'pong') {
+            client.isAlive = true;
+            return;
+        }
         let data;
         try {
             data = JSON.parse(message);
@@ -127,6 +134,7 @@ wss.on('connection', async (ws) => {
     client.on('close', () => {
         console.log(`client ${client.id} disconnected`);
         connectedClients.delete(client.id);
+        GlobalRoom_1.default.removePlayer(client);
         if (client.roomID) {
             const clientRoom = room_1.activeRooms.get(client.roomID);
             clientRoom.clients.delete(client.id);
@@ -143,6 +151,18 @@ wss.on('connection', async (ws) => {
         console.log('WebSocket err', err);
     });
 });
+setInterval(() => {
+    wss.clients.forEach(client => {
+        if (client.isAlive === false) {
+            console.log(`${client.id} left`);
+            connectedClients.delete(client.id);
+            return client.terminate();
+        }
+        client.isAlive = false;
+        client.send('ping');
+        console.log(connectedClients.size);
+    });
+}, PING_DELAY);
 app.use((req, res, next) => {
     res.sendFile(TARGET);
 });

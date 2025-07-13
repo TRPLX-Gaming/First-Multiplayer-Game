@@ -59,31 +59,30 @@ class GlobalRoom {
     
   }
   
-  // unnecessary
-  // async removePlayer(ws:WSClient):Promise<void> {
-  //   const playerID = ws.id 
-  //   if(this.clients.has(playerID)) {
-  //     this.clients.delete(playerID)
-  //     this.state.players[playerID] = null
-  //     this.playerCount--
-  //     this.broadcast({
-  //       type:'player-out',
-  //       data:null,
-  //       message:`player ${playerID} left global room`
-  //     })
-  //     ws.roomID = null
-  //     console.log(`player ${playerID} left global room`)
-  //     return
-  //   } 
+  async removePlayer(ws:WSClient):Promise<void> {
+    const playerID = ws.id 
+    if(this.clients.has(playerID)) {
+      this.clients.delete(playerID)
+      this.state.players[playerID] = null
+      this.playerCount--
+      this.broadcast({
+        type:'player-out',
+        data:null,
+        message:`player ${playerID} left global room`
+      })
+      ws.roomID = null
+      console.log(`player ${playerID} left global room`)
+      return
+    } 
     
-  //   if(this.clients.size === 0) {
-  //     ws.send(JSON.stringify({
-  //       type:'empty',
-  //       data:null,
-  //     }))
-  //     console.log(`global room is empty`)
-  //   }
-  // }
+    if(this.clients.size === 0) {
+      ws.send(JSON.stringify({
+        type:'empty',
+        data:null,
+      }))
+      console.log(`global room is empty`)
+    }
+  }
   
   private async broadcast(message:WSPayload):Promise<void> {
     const payload = JSON.stringify(message)
