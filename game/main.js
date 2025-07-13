@@ -13,12 +13,13 @@ const rightBtn = document.querySelector('.right-btn')
 const leftBtn = document.querySelector('.left-btn')
 
 // consts
+const PROTOCOL = window.location.protocol === 'http:' ? 'ws' : 'wss'
 const ctx = canvas.getContext('2d')
 const FPS = 60
 const frameTime = 1000/FPS
-let ws = new WebSocket(`ws://${window.location.host}`)
+let ws = new WebSocket(`${PROTOCOL}://${window.location.host}`)
 let players = new Map() // player id => player game Object
-alert(`${window.location.host}`)
+
 // event listeners 
 connectBtn.addEventListener('click',() => {
   ws = new WebSocket('ws://192.168.43.193:3000')
