@@ -5,6 +5,10 @@ import {
   RoomState,
 } from './types'
 
+const GAME_WIDTH = 450
+const GAME_HEIGHT = 300
+const OBJ_SIZE = 30
+
 class GlobalRoom {
   public readonly name:string = 'GLOBAL'
   public playerCount:number = 0
@@ -53,7 +57,8 @@ class GlobalRoom {
     await this.startGameLoop()
     this.broadcast({
       type:'player-in',
-      data:pos
+      data:pos,
+      message:`player ${playerID} joined global room`
     })
     console.log(`player ${playerID} joined global room`)
     
@@ -119,8 +124,9 @@ class GlobalRoom {
     const newPositions = Object.values(this.state.players).map(p => {
       if(p) return {
         id:p.id,
-        x:p.x,
-        y:p.y,
+        x:p.x < 0 ? Math.max(0,p.x) : p.x > GAME_WIDTH ? Math.min(GAME_WIDTH-OBJ_SIZE,GAME_WIDTH) : p.x,
+        y:p.y < 0 ? Math.max(0,p.y) : p.y > GAME_HEIGHT ?
+        Math.min(GAME_HEIGHT-OBJ_SIZE) : p.y,
         color:p.color
       }
     })

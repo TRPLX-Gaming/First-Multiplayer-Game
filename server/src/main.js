@@ -62,6 +62,7 @@ const globalChat = async (ws, message) => {
             data: null,
             message: 'imvalid message format'
         }));
+        return;
     }
     if (connectedClients.has(ws.id)) {
         connectedClients.forEach(client => {

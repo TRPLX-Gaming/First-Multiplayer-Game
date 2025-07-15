@@ -11,45 +11,61 @@ const roomDisplayId = document.querySelector('.room-id')
 const playerCountDisplay = document.querySelector('.player-count')
 const rightBtn = document.querySelector('.right-btn')
 const leftBtn = document.querySelector('.left-btn')
+const upBtn = document.querySelector('.up-btn')
+const downBtn = document.querySelector('.down-btn')
+const disconnectBtn = document.querySelector('.disconnect')
+const globalChatArea = document.querySelector('.global-chat')
+const globalChatList = globalChatArea.querySelector('.chat-list')
+const globalChatInput = globalChatArea.querySelector('.chat-input')
+const globalSendBtn = globalChatArea.querySelector('.send-btn')
 
 // consts
+const worker = new Worker('./worker.js')
 const PROTOCOL = window.location.protocol === 'http:' ? 'ws' : 'wss'
+const ENVIRONMENT = window.location.host.split(':')[0] === 'localhost' ? 'DEV' : 'PROD'
+const HOST = ENVIRONMENT === 'DEV' ? 'localhost:3000' : window.location.host
 const ctx = canvas.getContext('2d')
 const FPS = 60
 const frameTime = 1000/FPS
-let ws = new WebSocket(`${PROTOCOL}://${'localhost:3000'}`)
+let ws = new WebSocket(`${PROTOCOL}://${HOST}`)
 let players = new Map() // player id => player game Object
 
 // event listeners 
 connectBtn.addEventListener('click',() => {
-  ws = new WebSocket('ws://192.168.43.193:3000')
+  ws = new WebSocket(`${PROTOCOL}://${HOST}`)
+  window.location.href = window.location.href
+  disconnectBtn.style.display = 'block'
   startLoader()
 })
 
-rightBtn.addEventListener('click',()=>{
-  player.x += 20
-  ws.send(JSON.stringify({
-    type:'player-moved',
-    data:{
-      player:{
-        x:player.x,
-        y:player.y
-      }
-    }
-  }))
+// horizontal motiom
+rightBtn.addEventListener('touchstart',e=>{startMover(e,'right')})
+rightBtn.addEventListener('touchend',e=>{endMover(e)})
+leftBtn.addEventListener('touchstart',e=>{startMover(e,'left')})
+leftBtn.addEventListener('touchend',e=>{endMover(e)})
+// vertical motion
+upBtn.addEventListener('touchstart',e=>{startMover(e,'up')})
+upBtn.addEventListener('touchend',e=>{endMover(e)})
+downBtn.addEventListener('touchstart',e=>{startMover(e,'down')})
+downBtn.addEventListener('touchend',e=>{endMover(e)})
+
+// global chat 
+globalSendBtn.addEventListener('click',e=>{
+  e.preventDefault()
+  let message = globalChatInput.value.trim()
+  if(message === '') {
+    alert('empty msg cant be sent')
+    return
+  }
+  sendGlobalMessage(message)
+  globalChatInput.value = ''
 })
 
-leftBtn.addEventListener('click',()=>{
-  player.x -= 20
-  ws.send(JSON.stringify({
-    type:'player-moved',
-    data:{
-      player:{
-        x:player.x,
-        y:player.y
-      }
-    }
-  }))
+disconnectBtn.addEventListener('click',()=>{
+  ws.close()
+  disconnectBtn.style.display = 'none'
+  baseContainer.style.display = 'block'
+  alert('disconnected')
 })
 
 // game logic
@@ -58,6 +74,8 @@ function renderGameObjects(ctx) {
   if(players.size > 0) {
     players.forEach(player => {
       player.render(ctx)
+      player.update()
+      playerMotion(player)
     })
   }
 }
@@ -73,16 +91,57 @@ function updatePlayers(playersData) {
         const newAdd = new Player(player.x,player.y,player.color)
         players.set(player.id,newAdd)
       }
-        playerObj.x = player.x 
-        playerObj.y = player.y 
-        
-        existingPlayers.delete(player.id)
+      
+      playerObj.x = player.x 
+      playerObj.y = player.y 
+      existingPlayers.delete(player.id)
     }
   })
   
   existingPlayers.forEach(pl => {
     players.delete(pl)
   })
+}
+
+function startMover(e,direction) {
+  e.preventDefault()
+  player.isMoving = true
+  switch (direction) {
+    case 'right':
+      player.isMoving = true
+      player.vx = 5 
+      break
+    case 'left':
+      player.vx = -5
+      break
+    case 'up':
+      player.vy = -5
+      break
+    case 'down':
+      player.vy = 5
+      break
+  }
+}
+
+function endMover(e) {
+  e.preventDefault()
+  player.isMoving = false
+  player.vx = 0 
+  player.vy = 0
+}
+
+function playerMotion(player) {
+  if(player.isMoving) {
+    ws.send(JSON.stringify({
+      type:'player-moved',
+      data:{
+        player:{
+          x:player.x,
+          y:player.y
+        }
+      }
+    }))
+  }
 }
 
 let lastTime = 0
@@ -112,6 +171,22 @@ function stopLoader() {
   connectLoader.style.animation = 'none'
   baseContainer.style.display = 'none'
 }
+
+function appendMessage(msgInfo) {
+  const {from,message} = msgInfo
+  const newMsg = document.createElement('li')
+  newMsg.style.listStyleType = 'none'
+  newMsg.textContent = `${from} => ${message}`
+  globalChatList.append(newMsg)
+}
+
+function sendGlobalMessage(message) {
+  ws.send(JSON.stringify({
+    type:'global-chat',
+    message:message
+  }))
+}
+
 
 // websocket logic
 ws.onopen = () => {
@@ -152,7 +227,34 @@ ws.onmessage = e => {
         let updateArr = data.data.update
         updatePlayers(updateArr)
         break
-      
+      case 'global-chat':
+        const msgInfo = {
+          from:data.data.from,
+          message:data.data.message
+        }
+        appendMessage(msgInfo)
+        break
+      case 'joined-room':
+        const joinInfo = {
+          from:'THE_GAME',
+          message:data.message
+        }
+        appendMessage(joinInfo)
+        break
+      case 'player-out':
+        const leftInfo = {
+          from:'THE_GAME',
+          message:data.message
+        }
+        appendMessage(leftInfo)
+        break
+      case 'player-in':
+        const newInfo = {
+          from:'THE_GAME',
+          message:data.message
+        }
+        appendMessage(newInfo)
+        break
       
       default:
         console.log(data)

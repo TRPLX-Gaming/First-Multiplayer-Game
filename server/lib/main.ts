@@ -33,6 +33,7 @@ const globalChat = async (ws:WSClient,message:string):Promise<void> => {
       data:null,
       message:'imvalid message format'
     }))
+    return
   }
   
   if(connectedClients.has(ws.id)) {

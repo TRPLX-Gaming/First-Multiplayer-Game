@@ -23,11 +23,15 @@
     <h1>Room Name:<span class="room-name">null</span></h1>
     <h1>No. of players in lobby:<span class="player-count">null</span></h1>
     <div class="center">
-      <canvas class="game-display"></canvas>
+      <canvas class="game-display" width="450" height="300"></canvas>
     </div>
     <div class="center">
       <div class="left-btn">Left</div>
       <div class="right-btn">Right</div>
+    </div><br>
+    <div class="center">
+      <div class="up-btn">Up</div>
+      <div class="down-btn">Down</div>
     </div>
     
     <!-- room update area -->
@@ -53,8 +57,7 @@
     <div class="global-chat">
       <div class="center">
         <div class="chat-box">
-          <ul class="chat-list">
-          </ul>
+          <ul class="chat-list"></ul>
         </div>
       </div>
       <div class="center">
@@ -62,6 +65,8 @@
         <button class="send-btn">SEND</button>
       </div>
     </div>
+    
+    <h1 class="disconnect">Disconnect</h1>
     
   </div>
   <script type="module" src="main.js"></script>
